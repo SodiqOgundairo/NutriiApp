@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NutriiApp — Daily Nutritional Value</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --card2:#273449; --accent:#22c55e;
+    --accent2:#16a34a; --text:#f1f5f9; --muted:#94a3b8; --danger:#ef4444;
+    --amber:#f59e0b; --blue:#38bdf8; --purple:#a78bfa;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,#0f172a,#111c33 60%,#0f172a);color:var(--text);min-height:100vh}
+  header{max-width:960px;margin:0 auto;padding:28px 20px 8px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:44px;height:44px;border-radius:12px;background:var(--accent);display:grid;place-items:center;font-size:24px;font-weight:800;color:#052e16}
+  h1{margin:0;font-size:22px} h1 small{display:block;font-size:13px;color:var(--muted);font-weight:500}
+  .date-row{display:flex;gap:10px;align-items:center;background:var(--card);padding:10px 14px;border-radius:999px;border:1px solid #334155}
+  input[type=date]{background:#0b1220;color:var(--text);border:1px solid #334155;border-radius:8px;padding:8px 10px}
+  button{cursor:pointer}
+  main{max-width:960px;margin:0 auto;padding:16px 20px 60px;display:grid;gap:16px}
+  .grid{display:grid;gap:16px}
+  @media(min-width:800px){.grid.cols-2{grid-template-columns:1.2fr .8fr}.grid.cols-3{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--card);border:1px solid #334155;border-radius:var(--radius);padding:18px}
+  .card h2{margin:0 0 4px;font-size:16px}.card p.sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+  .cal-hero{display:flex;align-items:center;gap:18px}
+  .ring{width:130px;height:130px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+    background:conic-gradient(var(--accent) var(--pct,0%),#334155 0);}
+  .ring-inner{width:102px;height:102px;border-radius:50%;background:#0b1220;display:grid;place-items:center;text-align:center}
+  .ring-inner b{font-size:22px;display:block}.ring-inner span{font-size:11px;color:var(--muted)}
+  .nutrient{margin:12px 0}
+  .nutrient-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .bar{height:10px;background:#0b1220;border-radius:99px;overflow:hidden;border:1px solid #334155}
+  .bar > div{height:100%;border-radius:99px;background:var(--accent);width:0%;transition:width .4s}
+  .bar.over > div{background:var(--danger)}
+  .pill{display:inline-block;font-size:11px;padding:3px 9px;border-radius:99px;background:#0b1220;border:1px solid #334155;color:var(--muted)}
+  .pill.good{color:#86efac;border-color:var(--accent)} .pill.over{color:#fca5a5;border-color:var(--danger)}
+  form.add{display:grid;gap:10px}
+  label{font-size:12px;color:var(--muted);display:grid;gap:6px}
+  input,select{background:#0b1220;border:1px solid #334155;color:var(--text);border-radius:10px;padding:10px 12px;font-size:14px;width:100%}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .btn{background:var(--accent);border:0;color:#052e16;font-weight:700;border-radius:10px;padding:12px;font-size:14px}
+  .btn:hover{background:var(--accent2)}
+  .btn-ghost{background:transparent;border:1px solid #475569;color:var(--text);border-radius:10px;padding:8px 12px;font-size:13px}
+  .meal{display:flex;justify-content:space-between;gap:10px;background:var(--card2);border:1px solid #3b4d68;border-radius:12px;padding:12px;margin-top:10px}
+  .meal b{font-size:14px}.meal small{color:var(--muted);display:block;font-size:12px;margin-top:4px}
+  .meal .kcal{font-weight:800;color:#86efac;white-space:nowrap}
+  .meal-actions{display:flex;gap:6px;margin-top:8px}
+  .history{display:flex;gap:8px;flex-wrap:wrap}
+  .hist{flex:1;min-width:120px;background:#0b1220;border:1px solid #334155;border-radius:12px;padding:10px;text-align:center;cursor:pointer}
+  .hist.active{border-color:var(--accent)}
+  .hist b{display:block}.hist span{font-size:11px;color:var(--muted)}
+  footer{max-width:960px;margin:0 auto;padding:0 20px 30px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">N</div>
+    <h1>NutriiApp <small>Daily nutritional value tracker for Ahmed and everyone busy</small></h1>
+  </div>
+  <div class="date-row">
+    <span style="font-size:13px;color:var(--muted)">Date</span>
+    <input type="date" id="datePicker" />
+    <button class="btn-ghost" id="todayBtn">Today</button>
+  </div>
+</header>
+
+<main>
+  <div class="grid cols-2">
+    <section class="card">
+      <h2>Today's value</h2>
+      <p class="sub">Based on a 2,000 kcal reference diet (FDA Daily Values). <span id="dayLabel"></span></p>
+      <div class="cal-hero">
+        <div class="ring" id="calRing"><div class="ring-inner"><div><b id="calEaten">0</b><span>eaten / <span id="calGoal">2000</span> kcal</span></div></div></div>
+        <div>
+          <div><span class="pill" id="calLeft">2,000 kcal left</span></div>
+          <p class="sub" id="mealCount" style="margin-top:10px"></p>
+          <button class="btn-ghost" id="clearDay">Clear this day</button>
+        </div>
+      </div>
+      <div id="nutrients" style="margin-top:16px"></div>
+    </section>
+
+    <section class="card">
+      <h2>Log a meal</h2>
+      <p class="sub">Pick a quick food or enter values manually. You can edit any meal after.</p>
+      <form class="add" id="mealForm">
+        <input type="hidden" id="editId" />
+        <label>Meal name
+          <input id="foodName" list="foodList" placeholder="e.g. Jollof rice + chicken" required />
+          <datalist id="foodList"></datalist>
+        </label>
+        <div class="row">
+          <label>Type
+            <select id="foodType">
+              <option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option>
+            </select>
+          </label>
+          <label>Servings <input id="servings" type="number" min="0.25" step="0.25" value="1" /></label>
+        </div>
+        <div class="row3">
+          <label>Calories <input id="fCal" type="number" min="0" value="350" /></label>
+          <label>Protein g <input id="fPro" type="number" min="0" step="0.1" value="20" /></label>
+          <label>Carbs g <input id="fCarb" type="number" min="0" step="0.1" value="40" /></label>
+        </div>
+        <div class="row3">
+          <label>Fat g <input id="fFat" type="number" min="0" step="0.1" value="12" /></label>
+          <label>Fiber g <input id="fFib" type="number" min="0" step="0.1" value="4" /></label>
+          <label>Sugar g <input id="fSug" type="number" min="0" step="0.1" value="6" /></label>
+        </div>
+        <label>Sodium mg <input id="fSod" type="number" min="0" step="1" value="400" /></label>
+        <button class="btn" type="submit" id="submitBtn">Add meal</button>
+        <button class="btn-ghost" type="button" id="cancelEdit" style="display:none">Cancel edit</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="grid cols-2">
+    <section class="card">
+      <h2>Meals of the day</h2>
+      <p class="sub">Tap edit to update a meal.</p>
+      <div id="mealList"></div>
+    </section>
+    <section class="card">
+      <h2>Past days</h2>
+      <p class="sub">Last 7 days. Click a day to view it.</p>
+      <div class="history" id="history"></div>
+      <h2 style="margin-top:18px">Analysis</h2>
+      <p class="sub" id="analysis">Log meals to see your analysis.</p>
+    </section>
+  </div>
+</main>
+
+<footer>NutriiApp demo. Data is stored in your browser (localStorage). No medical diagnosis. No photo upload yet.</footer>
+
+<script>
+const DV = { calories:2000, protein:50, carbs:275, fat:78, fiber:28, sugar:50, sodium:2300 };
+const FOODS = {
+  "Jollof rice + chicken (1 plate)":{cal:650,pro:32,carb:75,fat:20,fib:5,sug:8,sod:900},
+  "Fried rice + turkey":{cal:600,pro:28,carb:70,fat:18,fib:4,sug:7,sod:850},
+  "Beans + plantain":{cal:520,pro:20,carb:80,fat:14,fib:12,sug:14,sod:500},
+  "Egusi soup + eba":{cal:700,pro:30,carb:60,fat:35,fib:8,sug:5,sod:950},
+  "Oatmeal + milk":{cal:300,pro:12,carb:50,fat:7,fib:6,sug:12,sod:180},
+  "Bread + fried egg (2 slices)":{cal:380,pro:16,carb:35,fat:20,fib:2,sug:4,sod:550},
+  "Chicken shawarma":{cal:550,pro:28,carb:45,fat:26,fib:3,sug:6,sod:980},
+  "Burger + fries":{cal:850,pro:35,carb:80,fat:42,fib:6,sug:12,sod:1200},
+  "Apple (1 medium)":{cal:95,pro:0.5,carb:25,fat:0.3,fib:4.5,sug:19,sod:2},
+  "Banana (1)":{cal:105,pro:1.3,carb:27,fat:0.4,fib:3,sug:14,sod:1},
+  "Greek yoghurt (170g)":{cal:150,pro:15,carb:8,fat:5,fib:0,sug:7,sod:70},
+  "Coke 35cl":{cal:140,pro:0,carb:39,fat:0,fib:0,sug:39,sod:45},
+  "Bottled water":{cal:0,pro:0,carb:0,fat:0,fib:0,sug:0,sod:0}
+};
+const store = {
+  load(){ try{return JSON.parse(localStorage.getItem('nutriApp')||'{}')}catch{return{}} },
+  save(d){ localStorage.setItem('nutriApp', JSON.stringify(d)) }
+};
+let db = store.load();
+const $ = id => document.getElementById(id);
+const todayStr = () => new Date().toISOString().slice(0,10);
+function curDate(){ return $('datePicker').value || todayStr(); }
+function dayMeals(){ return db[curDate()] || []; }
+
+function init(){
+  $('datePicker').value = todayStr();
+  $('datePicker').addEventListener('change', render);
+  $('todayBtn').onclick = () => { $('datePicker').value = todayStr(); render(); };
+  $('clearDay').onclick = () => { if(confirm('Clear all meals for this day?')){ db[curDate()]=[]; store.save(db); render(); } };
+  const dl = $('foodList');
+  Object.keys(FOODS).forEach(k => { const o=document.createElement('option'); o.value=k; dl.appendChild(o); });
+  $('foodName').addEventListener('input', e => {
+    const f = FOODS[e.target.value];
+    if(f){ $('fCal').value=f.cal; $('fPro').value=f.pro; $('fCarb').value=f.carb;
+      $('fFat').value=f.fat; $('fFib').value=f.fib; $('fSug').value=f.sug; $('fSod').value=f.sod; }
+  });
+  $('mealForm').addEventListener('submit', onSubmit);
+  $('cancelEdit').onclick = resetForm;
+  render();
+}
+function onSubmit(e){
+  e.preventDefault();
+  const s = parseFloat($('servings').value)||1;
+  const meal = {
+    id: $('editId').value || 'm'+Date.now(),
+    name: $('foodName').value.trim() || 'Meal',
+    type: $('foodType').value,
+    servings: s,
+    cal: (+$('fCal').value||0)*s, pro: (+$('fPro').value||0)*s,
+    carb:(+$('fCarb').value||0)*s, fat: (+$('fFat').value||0)*s,
+    fib: (+$('fFib').value||0)*s, sug: (+$('fSug').value||0)*s,
+    sod: (+$('fSod').value||0)*s
+  };
+  const d = curDate(); db[d] = db[d]||[];
+  const i = db[d].findIndex(m=>m.id===meal.id);
+  if(i>=0) db[d][i]=meal; else db[d].push(meal);
+  store.save(db); resetForm(); render();
+}
+function resetForm(){
+  $('mealForm').reset(); $('servings').value=1; $('editId').value='';
+  $('submitBtn').textContent='Add meal'; $('cancelEdit').style.display='none';
+}
+function totals(list){
+  return list.reduce((a,m)=>({cal:a.cal+m.cal,pro:a.pro+m.pro,carb:a.carb+m.carb,
+    fat:a.fat+m.fat,fib:a.fib+m.fib,sug:a.sug+m.sug,sod:a.sod+m.sod}),
+    {cal:0,pro:0,carb:0,fat:0,fib:0,sug:0,sod:0});
+}
+function nutRow(label, eaten, dv, unit){
+  const pct = dv? Math.round(eaten/dv*100):0;
+  const cls = pct>100 ? 'bar over' : 'bar';
+  const pill = pct>100 ? 'pill over' : (pct>=70?'pill good':'pill');
+  return `<div class="nutrient"><div class="nutrient-top"><span><b>${label}</b> — ${Math.round(eaten*10)/10}${unit} / ${dv}${unit}</span><span class="${pill}">${pct}% DV</span></div><div class="${cls}"><div style="width:${Math.min(pct,100)}%"></div></div></div>`;
+}
+function render(){
+  const d = curDate(), list = dayMeals(), t = totals(list);
+  $('dayLabel').textContent = '· ' + d + (d===todayStr() ? ' (today)' : '');
+  $('calEaten').textContent = Math.round(t.cal);
+  const left = DV.calories - t.cal;
+  $('calLeft').textContent = left>=0 ? `${Math.round(left).toLocaleString()} kcal left` : `${Math.round(-left).toLocaleString()} kcal over`;
+  $('calRing').style.setProperty('--pct', Math.min(t.cal/DV.calories*100,100)+'%');
+  $('mealCount').textContent = list.length ? `${list.length} meal${list.length>1?'s':''} logged` : 'No meals yet. Add your first meal.';
+  $('nutrients').innerHTML =
+    nutRow('Protein',t.pro,DV.protein,'g') + nutRow('Carbs',t.carb,DV.carbs,'g') +
+    nutRow('Fat',t.fat,DV.fat,'g') + nutRow('Fiber',t.fib,DV.fiber,'g') +
+    nutRow('Sugar',t.sug,DV.sugar,'g') + nutRow('Sodium',t.sod,DV.sodium,'mg');
+  const ml = $('mealList');
+  ml.innerHTML = list.length ? '' : '<p class="sub">Nothing logged for this day.</p>';
+  [...list].reverse().forEach(m=>{
+    const el = document.createElement('div'); el.className='meal';
+    el.innerHTML = `<div><b>${m.type}: ${m.name}</b><small>${m.pro.toFixed(1)}g protein · ${m.carb.toFixed(1)}g carbs · ${m.fat.toFixed(1)}g fat · ${Math.round(m.sod)}mg sodium${m.servings!==1?` · x${m.servings}`:''}</small>
+      <div class="meal-actions"><button class="btn-ghost" data-edit="${m.id}">Edit</button><button class="btn-ghost" data-del="${m.id}">Delete</button></div></div>
+      <div class="kcal">${Math.round(m.cal)}<br><small style="color:var(--muted);font-weight:400">kcal</small></div>`;
+    ml.appendChild(el);
+  });
+  ml.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ db[d]=db[d].filter(m=>m.id!==b.dataset.del); store.save(db); render(); });
+  ml.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
+    const m = db[d].find(x=>x.id===b.dataset.edit); if(!m) return;
+    $('editId').value=m.id; $('foodName').value=m.name; $('foodType').value=m.type;
+    $('servings').value=1; $('fCal').value=Math.round(m.cal); $('fPro').value=m.pro;
+    $('fCarb').value=m.carb; $('fFat').value=m.fat; $('fFib').value=m.fib;
+    $('fSug').value=m.sug; $('fSod').value=Math.round(m.sod);
+    $('submitBtn').textContent='Save changes'; $('cancelEdit').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+  // history last 7 days
+  const h = $('history'); h.innerHTML='';
+  for(let i=6;i>=0;i--){
+    const dt = new Date(); dt.setDate(dt.getDate()-i);
+    const key = dt.toISOString().slice(0,10);
+    const tt = totals(db[key]||[]);
+    const div = document.createElement('div');
+    div.className = 'hist'+(key===d?' active':'');
+    div.innerHTML = `<b>${Math.round(tt.cal)}</b><span>${key.slice(5)} kcal</span>`;
+    div.title = key; div.onclick = ()=>{ $('datePicker').value=key; render(); };
+    h.appendChild(div);
+  }
+  $('analysis').textContent = analysisText(t, list.length);
+}
+function analysisText(t,n){
+  if(!n) return 'Log meals to see your analysis.';
+  const out=[];
+  if(t.cal < DV.calories*0.5) out.push('calories are quite low for the day, make sure you eat enough');
+  else if(t.cal > DV.calories*1.2) out.push('calories are over the 2,000 reference');
+  else out.push('calories are in a reasonable range');
+  if(t.pro < 30) out.push('protein looks low');
+  if(t.fib < 10) out.push('fiber looks low, consider beans, oats or fruit');
+  if(t.sug > DV.sugar) out.push('sugar is over the daily value');
+  if(t.sod > DV.sodium) out.push('sodium is over the daily value');
+  if(!out.length || out.length===1) out.push('macros look balanced');
+  return 'Analysis: ' + out.join('; ') + '. (Reference only, not medical advice.)';
+}
+init();
+</script>
+</body>
+</html>
