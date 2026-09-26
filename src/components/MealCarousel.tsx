@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Card, CardContent } from 'devign'
 
 type PopoverPosition = 'left' | 'right' | 'bottom-left'
 
@@ -57,6 +56,12 @@ const SLIDES: MealSlide[] = [
 
 const AUTOPLAY_MS = 6000
 
+const POPOVER_POSITIONS: Record<PopoverPosition, string> = {
+  left: 'left-[5%] top-[38%]',
+  right: 'right-[5%] top-[57%]',
+  'bottom-left': 'bottom-[12%] left-[5%]',
+}
+
 interface MealCarouselProps {
   ariaLabel?: string
   showControls?: boolean
@@ -95,47 +100,71 @@ function MealCarousel({ ariaLabel = 'Meal nutrition spotlights', showControls = 
 
   return (
     <div
-      className="meal-carousel"
+      className="relative min-w-0 max-md:max-w-[520px]"
       role="region"
       aria-roledescription="carousel"
       aria-label={ariaLabel}
       onMouseEnter={stopAutoplay}
       onMouseLeave={startAutoplay}
     >
-      <div className="carousel-track">
-        {SLIDES.map((slide, index) => (
-          <article
-            key={slide.dish}
-            className={index === active ? 'carousel-slide is-active' : 'carousel-slide'}
-            aria-hidden={index !== active}
-            aria-roledescription="slide"
-            aria-label={`${slide.dish}, ${index + 1} of ${SLIDES.length}`}
-          >
-            <img src={slide.image} alt={slide.alt} loading={index === 0 ? 'eager' : 'lazy'} />
-            <Card variant="glass" glass="lg" radius="2xl" shadow="xl" className="slide-glass">
-              <CardContent padding="none">
-                <p className="slide-dish">{slide.dish}</p>
-                <p className="slide-cals">{slide.totalCals} cal in total</p>
-              </CardContent>
-            </Card>
-            {slide.popovers.map((popover) => (
-              <div key={popover.name} className={`chat-pop pop--${popover.position}`}>
-                <span className="chat-pop__emoji" aria-hidden="true">{popover.emoji}</span>
-                <div>
-                  <strong>{popover.name} <span>({popover.cals} cal)</span></strong>
-                  <small>{popover.benefit}</small>
+      <div className="relative aspect-[1/1.04] max-md:aspect-[1/1.12]">
+        {SLIDES.map((slide, index) => {
+          const isActive = index === active
+          return (
+            <article
+              key={slide.dish}
+              className={
+                isActive
+                  ? 'absolute inset-0 z-[1] overflow-hidden rounded-2xl border border-(--neutral-200) bg-(--neutral-200) opacity-100 transition-opacity duration-[3000ms] ease'
+                  : 'pointer-events-none absolute inset-0 overflow-hidden rounded-2xl border border-(--neutral-200) bg-(--neutral-200) opacity-0 transition-opacity duration-[3000ms] ease'
+              }
+              aria-hidden={!isActive}
+              aria-roledescription="slide"
+              aria-label={`${slide.dish}, ${index + 1} of ${SLIDES.length}`}
+            >
+              <img
+                src={slide.image}
+                alt={slide.alt}
+                loading={index === 0 ? 'eager' : 'lazy'}
+                className={
+                  isActive
+                    ? 'absolute inset-0 block h-full w-full scale-110 object-cover transition-transform [transition-duration:6500ms] [transition-timing-function:linear]'
+                    : 'absolute inset-0 block h-full w-full scale-100 object-cover transition-transform duration-[3000ms] ease'
+                }
+              />
+              <div className="absolute top-[7%] left-1/2 w-[min(62%,300px)] -translate-x-1/2 rounded-[10px] border border-white/65 bg-[#fafafa]/55 text-center shadow-[0_12px_40px_rgba(4,94,10,0.08)] backdrop-blur-[20px] backdrop-saturate-150">
+                <div className="grid justify-items-center gap-1 px-3 pt-1.5 pb-2">
+                  <p className="m-0 text-2xl font-extrabold tracking-[-0.01em] text-(--neutral-800) max-md:text-[22px]">{slide.dish}</p>
+                  <p className="m-0 text-sm font-semibold text-(--neutral-500)">{slide.totalCals} cal in total</p>
                 </div>
               </div>
-            ))}
-          </article>
-        ))}
+              {slide.popovers.map((popover) => (
+                <div
+                  key={popover.name}
+                  className={`absolute z-[2] flex max-w-[72%] items-center gap-2.5 rounded-2xl border border-white/10 bg-[#10140f] p-3 px-4 text-white shadow-[0_12px_32px_rgba(0,0,0,0.35)] transition duration-300 hover:-translate-y-1 hover:border-(--accent-500) hover:shadow-[0_16px_40px_rgba(228,87,46,0.35)] ${POPOVER_POSITIONS[popover.position]}`}
+                >
+                  <span className="text-[26px] leading-none max-md:text-[22px]" aria-hidden="true">{popover.emoji}</span>
+                  <div>
+                    <strong className="block text-[15px] font-extrabold max-md:text-[13px]">{popover.name} <span className="font-semibold text-white/55">({popover.cals} cal)</span></strong>
+                    <small className="mt-0.5 block text-[13px] text-white/80 max-md:text-xs">{popover.benefit}</small>
+                  </div>
+                </div>
+              ))}
+            </article>
+          )
+        })}
       </div>
       {showControls ? (
-        <div className="carousel-controls">
-          <button type="button" className="carousel-arrow" onClick={() => go(-1)} aria-label="Previous meal">
+        <div className="mt-4 flex items-center justify-center gap-3.5">
+          <button
+            type="button"
+            className="grid h-9 w-9 place-items-center rounded-full border border-(--neutral-200) bg-white text-[22px] leading-none text-(--neutral-800) transition duration-300 hover:-translate-y-0.5 hover:border-(--brand-500) hover:bg-(--brand-500) hover:text-white"
+            onClick={() => go(-1)}
+            aria-label="Previous meal"
+          >
             <span aria-hidden="true">‹</span>
           </button>
-          <div className="carousel-dots" role="tablist" aria-label="Choose meal">
+          <div className="flex items-center gap-2" role="tablist" aria-label="Choose meal">
             {SLIDES.map((slide, index) => (
               <button
                 key={slide.dish}
@@ -143,12 +172,21 @@ function MealCarousel({ ariaLabel = 'Meal nutrition spotlights', showControls = 
                 role="tab"
                 aria-selected={index === active}
                 aria-label={`Show ${slide.dish}`}
-                className={index === active ? 'carousel-dot is-active' : 'carousel-dot'}
+                className={
+                  index === active
+                    ? 'h-2 w-7 cursor-pointer rounded-full border-0 bg-(--brand-500) p-0 transition-all duration-300'
+                    : 'h-2 w-2 cursor-pointer rounded-full border-0 bg-(--neutral-200) p-0 transition-all duration-300 hover:bg-(--accent-500)'
+                }
                 onClick={() => goTo(index)}
               />
             ))}
           </div>
-          <button type="button" className="carousel-arrow" onClick={() => go(1)} aria-label="Next meal">
+          <button
+            type="button"
+            className="grid h-9 w-9 place-items-center rounded-full border border-(--neutral-200) bg-white text-[22px] leading-none text-(--neutral-800) transition duration-300 hover:-translate-y-0.5 hover:border-(--brand-500) hover:bg-(--brand-500) hover:text-white"
+            onClick={() => go(1)}
+            aria-label="Next meal"
+          >
             <span aria-hidden="true">›</span>
           </button>
         </div>
