@@ -4,24 +4,23 @@ import LoginScreen from './components/LoginScreen'
 import SignupScreen from './components/SignupScreen'
 import ForgotScreen from './components/ForgotScreen'
 import DashboardScreen from './components/DashboardScreen'
-import LogMealScreen from './components/LogMealScreen'
 import AnalysisScreen from './components/AnalysisScreen'
 import ProfileScreen from './components/ProfileScreen'
 import ResetScreen from './components/ResetScreen'
 import AmbientBackground from './components/AmbientBackground'
 import { SESSION_EVENT, getDemoSession, type DemoSession } from './lib/session'
 
-type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'log-meal' | 'analysis' | 'profile'
+type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'analysis' | 'profile'
 
 function routeFromHash(): Route {
   const hash = window.location.hash.replace(/^#/, '').split('?')[0]
   if (hash === '' || hash === 'home') return 'landing'
   if (hash === 'signin' || hash === 'signup' || hash === 'forgot' || hash === 'reset') return hash
-  if (hash === 'dashboard' || hash === 'log-meal' || hash === 'analysis' || hash === 'profile') return hash
+  if (hash === 'dashboard' || hash === 'analysis' || hash === 'profile') return hash
   return 'landing'
 }
 
-const PROTECTED_ROUTES: Route[] = ['dashboard', 'log-meal', 'analysis', 'profile']
+const PROTECTED_ROUTES: Route[] = ['dashboard', 'analysis', 'profile']
 
 function App() {
   const [route, setRoute] = useState<Route>(() => routeFromHash())
@@ -67,13 +66,6 @@ function App() {
         <>
           {background}
           <DashboardScreen session={session} />
-        </>
-      )
-    case 'log-meal':
-      return (
-        <>
-          {background}
-          <LogMealScreen />
         </>
       )
     case 'analysis':

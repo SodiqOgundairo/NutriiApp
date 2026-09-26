@@ -10,12 +10,20 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerHeader,
   EmptyState,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
   Skeleton,
   SkeletonText,
   getInitials,
 } from 'devign'
 import GlowCard from './GlowCard'
+import MealForm from './MealForm'
 import WaterVessels from './WaterVessels'
 import { signOutDemo, type DemoSession } from '../lib/session'
 import { getMealsSnapshot, mealsForDate, subscribeMeals } from '../lib/mealStore'
@@ -212,6 +220,8 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
   const allMeals = useSyncExternalStore(subscribeMeals, getMealsSnapshot)
   const [selectedDate, setSelectedDate] = useState(() => todayISO())
   const [loadingDay, setLoadingDay] = useState(true)
+  const [logOpen, setLogOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setLoadingDay(false), 600)
@@ -296,7 +306,7 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
             Here is your day at a glance. Pick any day to revisit its meals and balance.
           </p>
           <div className="flex">
-            <Button variant="primary" size="lg" onClick={() => { window.location.hash = '#log-meal' }}>
+            <Button variant="primary" size="lg" onClick={() => setLogOpen(true)}>
               Log a meal
             </Button>
           </div>
@@ -339,15 +349,21 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
                           <small className="text-[13px] text-(--neutral-500)">{meal.quantity} {meal.unit}</small>
                         </div>
                         {isToday ? (
-                          <Button
-                            variant="ghost-primary"
-                            size="sm"
-                            className="ml-auto shrink-0"
-                            onClick={() => { window.location.hash = `#log-meal?id=${meal.id}` }}
-                            aria-label={`Edit ${meal.text}`}
-                          >
-                            Edit
-                          </Button>
+                          <Popover open={editingId === meal.id} onOpenChange={(open) => setEditingId(open ? meal.id : null)}>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost-primary"
+                                size="sm"
+                                className="ml-auto shrink-0"
+                                aria-label={`Edit ${meal.text}`}
+                              >
+                                Edit
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-[min(360px,calc(100vw-48px))]">
+                              <MealForm initial={meal} onDone={() => setEditingId(null)} />
+                            </PopoverContent>
+                          </Popover>
                         ) : null}
                       </div>
                     )),
@@ -388,6 +404,14 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
           </section>
         </div>
       </div>
+      <Drawer open={logOpen} onOpenChange={setLogOpen}>
+        <DrawerContent position="right" size="md">
+          <DrawerHeader title="Log a meal" description="What did you eat today?" />
+          <DrawerBody>
+            <MealForm onDone={() => setLogOpen(false)} />
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
     </main>
   )
 }

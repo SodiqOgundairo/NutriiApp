@@ -8,7 +8,7 @@ function LandingScreen() {
   }, [])
 
   return (
-    <main className="mx-auto flex h-dvh min-h-0 w-[min(1440px,calc(100%-64px))] flex-col overflow-hidden pt-0 pb-[22px]" aria-label="NutriiApp home">
+    <main className="mx-auto flex min-h-dvh w-[min(1440px,calc(100%-64px))] flex-col pb-[22px]" aria-label="NutriiApp home">
       <header className="sticky top-0 z-20 flex items-center justify-between bg-[#fafafa] py-5">
         <a className="inline-flex items-center gap-2.5 text-[15px] font-extrabold text-(--neutral-800) no-underline" href="#home" aria-label="NutriiApp home">
           <span className="grid h-[38px] w-[38px] place-items-center rounded-full bg-(--brand-500) text-[21px] font-bold text-[#fffdf8]" aria-hidden="true">N</span>
@@ -19,8 +19,8 @@ function LandingScreen() {
         </Button>
       </header>
 
-      <section className="grid flex-1 grid-cols-1 items-center gap-[26px] max-md:items-stretch lg:grid-cols-[minmax(0,1fr)_minmax(400px,560px)] lg:gap-[clamp(32px,5vw,72px)]" aria-labelledby="landing-heading">
-        <div className="max-w-[690px]">
+      <section className="flex flex-1 justify-center gap-10 py-10 max-md:flex-col md:items-center lg:gap-[clamp(32px,5vw,72px)]" aria-labelledby="landing-heading">
+        <div className="md:flex-1">
           <p className="m-0 mb-5 text-xs font-extrabold tracking-[0.16em] text-(--brand-700) uppercase">Your day, understood</p>
           <h1 id="landing-heading" className="m-0 max-w-[660px] text-[clamp(52px,7vw,94px)] leading-[0.94] font-extrabold tracking-[-0.04em]"><span className="font-black text-(--brand-500) underline decoration-(--accent-500) decoration-[0.08em] underline-offset-[0.14em]">Eat with</span> a little more <span className="font-black text-(--brand-500) underline decoration-(--accent-500) decoration-[0.08em] underline-offset-[0.14em]">intention.</span></h1>
           <p className="mt-7 mb-0 max-w-[470px] text-lg leading-[1.55] text-(--neutral-500)">
@@ -34,7 +34,9 @@ function LandingScreen() {
           </div>
         </div>
 
-        <MealCarousel />
+        <div className="mt-6 max-md:mx-auto max-md:w-full max-md:max-w-[520px] md:mt-0 md:w-[320px] md:shrink-0 lg:w-[440px] xl:w-[560px]">
+          <MealCarousel />
+        </div>
       </section>
 
       <footer className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 px-0 pt-5 pb-1.5 text-[15px] font-semibold max-md:gap-x-3 max-md:gap-y-2 max-md:pt-4 max-md:text-[13px]">
