@@ -1,6 +1,7 @@
+/* Devign ships its own compiled utilities; import it first so ours (incl. md:/lg:) win on source order. */
+@import "devign/styles.css";
 @import "tailwindcss";
 @source "../../../node_modules/devign/dist";
-@import "devign/styles.css";
 
 :root {
   --brand-50: #e7f2e8;
