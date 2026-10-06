@@ -29,39 +29,45 @@ function MealForm({ initial = null, onDone }: MealFormProps) {
   const [quantity, setQuantity] = useState(initial ? String(initial.quantity) : '1')
   const [unit, setUnit] = useState(initial?.unit ?? 'plate')
   const [category, setCategory] = useState<MealCategory>(initial?.category ?? 'lunch')
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const preview = useMemo(() => analyzeMeal(text, Number(quantity) || 0).servings, [text, quantity])
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const qty = Number(quantity) || 1
-    if (!text.trim()) return
+    if (!text.trim() || saving) return
     const analysis = analyzeMeal(text, qty)
-    if (initial) {
-      updateMeal(initial.id, {
-        text: text.trim(),
-        quantity: qty,
-        unit: unit.trim() || 'portion',
-        category,
-        servings: analysis.servings,
-        calories: analysis.calories,
-      })
-    } else {
-      const now = new Date()
-      const loggedAt = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      addMeal({
-        id: `meal-${Date.now()}`,
-        date: today,
-        loggedAt,
-        text: text.trim(),
-        quantity: qty,
-        unit: unit.trim() || 'portion',
-        category,
-        servings: analysis.servings,
-        calories: analysis.calories,
-      })
+    setSaving(true)
+    setFormError(null)
+    try {
+      if (initial) {
+        await updateMeal(initial.id, {
+          text: text.trim(),
+          quantity: qty,
+          unit: unit.trim() || 'portion',
+          category,
+          servings: analysis.servings,
+          calories: analysis.calories,
+        })
+      } else {
+        await addMeal({
+          date: today,
+          text: text.trim(),
+          quantity: qty,
+          unit: unit.trim() || 'portion',
+          category,
+          servings: analysis.servings,
+          calories: analysis.calories,
+        })
+      }
+      onDone()
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Save failed')
+    } finally {
+      setSaving(false)
     }
-    onDone()
   }
 
   return (
@@ -135,8 +141,13 @@ function MealForm({ initial = null, onDone }: MealFormProps) {
           </span>
         ))}
       </div>
-      <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">
-        {initial ? 'Save changes' : 'Log meal'}
+      {formError ? (
+        <p role="alert" className="m-0 rounded-xl bg-[#fdeee7] px-4 py-3 text-sm font-semibold text-(--accent-700)">
+          Could not save: {formError}. Open the console and copy the first red line.
+        </p>
+      ) : null}
+      <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" disabled={saving}>
+        {saving ? 'Saving...' : initial ? 'Save changes' : 'Log meal'}
       </Button>
     </form>
   )

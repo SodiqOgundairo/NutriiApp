@@ -26,7 +26,7 @@ import GlowCard from './GlowCard'
 import MealForm from './MealForm'
 import WaterVessels from './WaterVessels'
 import { signOutDemo, type DemoSession } from '../lib/session'
-import { getMealsSnapshot, mealsForDate, subscribeMeals } from '../lib/mealStore'
+import { getMealsError, getMealsSnapshot, mealsForDate, refreshMeals, subscribeMeals } from '../lib/mealStore'
 import { FOOD_CLASSES, MEAL_CATEGORIES, sumServings, todayISO, toISODate, type FoodClass, type MealCategory } from '../lib/nutrition'
 
 const CATEGORY_LABELS: Record<MealCategory, string> = {
@@ -222,6 +222,11 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
   const [loadingDay, setLoadingDay] = useState(true)
   const [logOpen, setLogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const mealsError = useSyncExternalStore(subscribeMeals, getMealsError)
+
+  useEffect(() => {
+    void refreshMeals()
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setLoadingDay(false), 600)
@@ -328,9 +333,11 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
                 icon={<BowlIllustration />}
                 title={isToday ? 'No meals logged today' : 'No meals this day'}
                 description={
-                  isToday
-                    ? 'Your plate is empty. Log breakfast, lunch, dinner or a snack and watch your day take shape.'
-                    : 'Nothing was recorded this day. Pick another date to revisit its meals.'
+                  mealsError
+                    ? `Could not load meals: ${mealsError}. Open the console and copy the first red line.`
+                    : isToday
+                      ? 'Your plate is empty. Log breakfast, lunch, dinner or a snack and watch your day take shape.'
+                      : 'Nothing was recorded this day. Pick another date to revisit its meals.'
                 }
               />
             ) : (

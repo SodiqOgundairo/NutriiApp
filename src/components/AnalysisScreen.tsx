@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { EmptyState } from 'devign'
 import GlowCard from './GlowCard'
 import WaterVessels from './WaterVessels'
-import { getMealsSnapshot, mealsForDate } from '../lib/mealStore'
+import { getMealsSnapshot, mealsForDate, refreshMeals, subscribeMeals } from '../lib/mealStore'
 import { FOOD_CLASSES, FOOD_CLASS_LABELS, sumServings, todayISO } from '../lib/nutrition'
 
 function dateFromHash(): string {
@@ -29,7 +29,12 @@ function formatLongDate(iso: string): string {
 
 function AnalysisScreen() {
   const [date] = useState<string>(() => dateFromHash())
-  const dayMeals = useMemo(() => mealsForDate(getMealsSnapshot(), date), [date])
+  const allMeals = useSyncExternalStore(subscribeMeals, getMealsSnapshot)
+  const dayMeals = useMemo(() => mealsForDate(allMeals, date), [allMeals, date])
+
+  useEffect(() => {
+    void refreshMeals()
+  }, [])
   const totals = useMemo(() => sumServings(dayMeals), [dayMeals])
   const covered = useMemo(() => FOOD_CLASSES.filter((foodClass) => totals[foodClass] > 0), [totals])
   const isToday = date === todayISO()
