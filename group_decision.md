@@ -26,3 +26,4 @@ we are not building the mobile app yet (not yet)
 No comparison of patient data  (never)
 no suggestions of meals (not yet)
 No medical diagnosis (not yet)
+profile page
