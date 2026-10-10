@@ -200,6 +200,12 @@ function SignupScreen() {
             </Button>
             <GoogleSignInButton disabled={loading} onError={setError} />
           </form>
+          <p className="mt-5 text-center text-xs leading-[1.6] text-(--neutral-500)">
+            By creating an account, you agree to our{' '}
+            <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#terms">Terms of Use</a>{' '}
+            and{' '}
+            <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#privacy">Privacy Policy</a>.
+          </p>
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             Already have an account? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signin">Sign in</a>
           </p>

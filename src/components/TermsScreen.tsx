@@ -64,7 +64,7 @@ function TermsScreen() {
       <section className="mt-8" aria-labelledby="terms-delete">
         <h2 id="terms-delete" className="m-0 text-[22px] font-extrabold tracking-[-0.01em]">Deleting your account</h2>
         <p className="mt-3 leading-[1.6] text-(--neutral-800)">
-          Email <strong>[add your contact email here]</strong> from the address you signed
+          Email <a className="font-semibold text-(--brand-700)" href="mailto:hello@gr8m.com">hello@gr8m.com</a> from the address you signed
           up with and ask for deletion, as described in our{' '}
           <a className="font-semibold text-(--brand-700)" href="#privacy">privacy policy</a>.
         </p>
