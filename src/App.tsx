@@ -8,7 +8,8 @@ import AnalysisScreen from './components/AnalysisScreen'
 import ProfileScreen from './components/ProfileScreen'
 import ResetScreen from './components/ResetScreen'
 import AmbientBackground from './components/AmbientBackground'
-import { SESSION_EVENT, getDemoSession, type DemoSession } from './lib/session'
+import { sessionFromUser, type AppSession } from './lib/session'
+import { supabase } from './lib/supabase'
 
 type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'analysis' | 'profile'
 
@@ -24,18 +25,41 @@ const PROTECTED_ROUTES: Route[] = ['dashboard', 'analysis', 'profile']
 
 function App() {
   const [route, setRoute] = useState<Route>(() => routeFromHash())
-  const [session, setSession] = useState<DemoSession | null>(() => getDemoSession())
+  const [session, setSession] = useState<AppSession | null>(null)
+  const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
     const handleHashChange = () => setRoute(routeFromHash())
-    const handleSessionChange = () => setSession(getDemoSession())
     window.addEventListener('hashchange', handleHashChange)
-    window.addEventListener(SESSION_EVENT, handleSessionChange)
     return () => {
       window.removeEventListener('hashchange', handleHashChange)
-      window.removeEventListener(SESSION_EVENT, handleSessionChange)
     }
   }, [])
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthReady(true)
+      return
+    }
+    let mounted = true
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return
+      setSession(sessionFromUser(data.session?.user ?? null))
+      setAuthReady(true)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
+      setSession(sessionFromUser(supabaseSession?.user ?? null))
+      setAuthReady(true)
+    })
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  if (!authReady) {
+    return null
+  }
 
   if (PROTECTED_ROUTES.includes(route) && !session) {
     return <LoginScreen />
@@ -79,7 +103,7 @@ function App() {
       return (
         <>
           {background}
-          <ProfileScreen />
+          <ProfileScreen session={session} />
         </>
       )
     default:

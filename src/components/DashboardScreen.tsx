@@ -25,7 +25,7 @@ import {
 import GlowCard from './GlowCard'
 import MealForm from './MealForm'
 import WaterVessels from './WaterVessels'
-import { signOutDemo, type DemoSession } from '../lib/session'
+import { signOut, type AppSession } from '../lib/session'
 import { getMealsError, getMealsSnapshot, mealsForDate, refreshMeals, subscribeMeals } from '../lib/mealStore'
 import { FOOD_CLASSES, MEAL_CATEGORIES, sumServings, todayISO, toISODate, type FoodClass, type MealCategory } from '../lib/nutrition'
 
@@ -216,7 +216,7 @@ function MonthCalendar({ selectedDate, dayStats, onSelect }: MonthCalendarProps)
   )
 }
 
-function DashboardScreen({ session }: { session: DemoSession | null }) {
+function DashboardScreen({ session }: { session: AppSession | null }) {
   const allMeals = useSyncExternalStore(subscribeMeals, getMealsSnapshot)
   const [selectedDate, setSelectedDate] = useState(() => todayISO())
   const [loadingDay, setLoadingDay] = useState(true)
@@ -254,11 +254,11 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
       [...acc.entries()].map(([date, value]) => [date, { calories: value.calories, covered: value.classes.size }]),
     )
   }, [allMeals])
-  const firstName = session?.name?.trim().split(' ')[0] || session?.email?.split('@')[0] || 'there'
+  const firstName = session?.username?.trim().split(' ')[0] || session?.email?.split('@')[0] || 'there'
   const reduceMotion = useReducedMotion()
 
-  const handleSignOut = () => {
-    signOutDemo()
+  const handleSignOut = async () => {
+    await signOut()
     window.location.hash = '#home'
   }
 
@@ -278,7 +278,7 @@ function DashboardScreen({ session }: { session: DemoSession | null }) {
                 aria-label="Account menu"
               >
                 <Avatar className="ring-0 outline-none">
-                  <AvatarFallback className="outline-none">{getInitials(session?.name || session?.email || 'Guest')}</AvatarFallback>
+                  <AvatarFallback className="outline-none">{getInitials(session?.username || session?.email || 'Guest')}</AvatarFallback>
                 </Avatar>
                 <span>{firstName}</span>
               </button>

@@ -1,24 +1,122 @@
-import { useState, type FormEvent } from 'react'
-import { Button, Input, Label } from 'devign'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Alert, AlertDescription, Button, Input, Label } from 'devign'
+import PasswordStrength from './PasswordStrength'
+import { validatePassword } from '../lib/password'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
+
+type LinkStatus = 'checking' | 'ready' | 'invalid'
 
 function ResetScreen() {
+  const [status, setStatus] = useState<LinkStatus>('checking')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [account, setAccount] = useState<{ username?: string; email?: string }>({})
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    let cancelled = false
+
+    async function establishRecoverySession() {
+      if (!supabase) {
+        setStatus('invalid')
+        return
+      }
+      const { data: initial } = await supabase.auth.getSession()
+      if (cancelled) return
+      if (initial.session) {
+        setStatus('ready')
+        void rememberAccount()
+        return
+      }
+      // Supabase sends the user back with either ?code= (PKCE) or fragment
+      // tokens (implicit flow). With hash routing the code can land in
+      // location.search or inside the hash itself, so check both.
+      const searchParams = new URLSearchParams(window.location.search)
+      const hash = window.location.hash
+      const hashQueryIndex = hash.indexOf('?')
+      const hashQuery =
+        hashQueryIndex >= 0 ? new URLSearchParams(hash.slice(hashQueryIndex + 1)) : null
+      const code = searchParams.get('code') ?? hashQuery?.get('code')
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        if (cancelled) return
+        if (!exchangeError) {
+          setStatus('ready')
+          void rememberAccount()
+          return
+        }
+      }
+      const fragment = hash.includes('#reset')
+        ? hash.slice(hash.indexOf('#reset') + '#reset'.length)
+        : hash
+      const fragParams = new URLSearchParams(fragment.replace(/^[#?&]/, ''))
+      const accessToken = fragParams.get('access_token')
+      const refreshToken = fragParams.get('refresh_token')
+      if (accessToken && refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        if (cancelled) return
+        if (!sessionError) {
+          setStatus('ready')
+          void rememberAccount()
+          return
+        }
+      }
+      setStatus('invalid')
+    }
+
+    async function rememberAccount() {
+      if (!supabase) return
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (cancelled || !user) return
+      const metadata = (user.user_metadata ?? {}) as Record<string, unknown>
+      const username =
+        typeof metadata.username === 'string'
+          ? metadata.username
+          : typeof metadata.display_name === 'string'
+            ? metadata.display_name
+            : undefined
+      setAccount({ username, email: user.email ?? undefined })
+    }
+
+    void establishRecoverySession()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (password.length < 6) {
-      setError('Use at least 6 characters.')
+    setError(null)
+    const passwordError = validatePassword(password, account)
+    if (passwordError) {
+      setError(passwordError)
       return
     }
     if (password !== confirm) {
       setError('Passwords do not match.')
       return
     }
-    setError(null)
-    setDone(true)
+    if (!supabase) {
+      setError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).')
+      return
+    }
+    setUpdating(true)
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password })
+      if (updateError) throw updateError
+      setDone(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not update password. Try again.')
+    } finally {
+      setUpdating(false)
+    }
   }
 
   return (
@@ -34,7 +132,7 @@ function ResetScreen() {
         <p className="m-0 text-xs font-extrabold uppercase tracking-[0.16em] text-(--brand-100)">Account recovery</p>
         <h1 id="reset-heading" className="m-0 max-w-[460px] text-[clamp(44px,5vw,72px)] font-extrabold leading-[0.98] tracking-[-0.03em] max-md:text-[clamp(40px,12vw,56px)]">Choose a fresh password.</h1>
         <p className="m-0 max-w-[360px] text-[17px] leading-[1.6] text-white/80">
-          Make it something memorable. Demo mode: nothing is actually stored anywhere new.
+          Make it something memorable. You&apos;ll use it next time you sign in.
         </p>
       </section>
 
@@ -42,13 +140,33 @@ function ResetScreen() {
         <div className="w-full max-w-[400px]">
           <p className="m-0 mb-2.5 text-xs font-extrabold uppercase tracking-[0.16em] text-(--neutral-500)">Reset password</p>
           <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.02em]">Set a new password</h2>
-          {done ? (
+          {!isSupabaseConfigured ? (
+            <Alert variant="error" className="mt-4">
+              <AlertDescription>
+                Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {status === 'checking' ? (
+            <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">Checking your reset link…</p>
+          ) : status === 'invalid' ? (
+            <>
+              <Alert variant="error" className="mt-4" role="alert">
+                <AlertDescription>
+                  This reset link is invalid or has expired. Request a new one to continue.
+                </AlertDescription>
+              </Alert>
+              <Button variant="primary" size="lg" className="mt-4 w-full" onClick={() => { window.location.hash = '#forgot' }}>
+                Request a new link
+              </Button>
+            </>
+          ) : done ? (
             <>
               <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">
-                Password updated. Sign in with your new password to continue.
+                Password updated. You&apos;re signed in, continue to your dashboard.
               </p>
-              <Button variant="primary" size="lg" className="mt-1 w-full" onClick={() => { window.location.hash = '#signin' }}>
-                Back to sign in
+              <Button variant="primary" size="lg" className="mt-1 w-full" onClick={() => { window.location.hash = '#dashboard' }}>
+                Continue to dashboard
               </Button>
             </>
           ) : (
@@ -62,13 +180,16 @@ function ResetScreen() {
                   id="new-password"
                   name="password"
                   type="password"
-                  placeholder="At least 6 characters"
+                  placeholder="Choose a strong password"
                   variant="plain"
                   inputSize="lg"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
+                  autoComplete="new-password"
+                  minLength={8}
                 />
+                <PasswordStrength password={password} username={account.username} email={account.email} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="confirm-password">Confirm password</Label>
@@ -82,12 +203,18 @@ function ResetScreen() {
                   value={confirm}
                   onChange={(event) => setConfirm(event.target.value)}
                   required
+                  autoComplete="new-password"
+                  minLength={8}
                 />
               </div>
               {error ? (
-                <p className="m-0 text-sm font-semibold text-(--accent-700)" role="alert">{error}</p>
+                <Alert variant="error" role="alert">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               ) : null}
-              <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">Update password</Button>
+              <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={updating} disabled={updating}>
+                {updating ? 'Updating…' : 'Update password'}
+              </Button>
             </form>
           )}
         </div>

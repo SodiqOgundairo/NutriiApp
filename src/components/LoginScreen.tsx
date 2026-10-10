@@ -1,15 +1,31 @@
-import type { FormEvent } from 'react'
-import { Button, Input, Label } from 'devign'
-import { signInDemo } from '../lib/session'
+import { useState, type FormEvent } from 'react'
+import { Alert, AlertDescription, Button, Input, Label } from 'devign'
+import { signInWithIdentifier } from '../lib/session'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 function LoginScreen() {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setError(null)
     const data = new FormData(event.currentTarget)
-    const email = String(data.get('email') ?? '')
-    if (!email) return
-    signInDemo(email)
-    window.location.hash = '#dashboard'
+    const identifier = String(data.get('identifier') ?? '').trim()
+    const password = String(data.get('password') ?? '')
+    if (!identifier || !password) {
+      setError('Enter your email or username and password.')
+      return
+    }
+    setLoading(true)
+    try {
+      await signInWithIdentifier({ identifier, password })
+      window.location.hash = '#dashboard'
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign in failed. Try again.')
+    } finally {
+      setLoading(false)
+    }
   }
   return (
     <main className="grid min-h-dvh w-full grid-cols-1 lg:grid-cols-2" aria-labelledby="welcome-heading">
@@ -32,19 +48,33 @@ function LoginScreen() {
           <p className="m-0 mb-2.5 text-xs font-extrabold uppercase tracking-[0.16em] text-(--neutral-500)">Welcome back</p>
           <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.02em]">Sign in to NutriiApp</h2>
           <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">Pick up where you left off with today&apos;s meals.</p>
+          {!isSupabaseConfigured ? (
+            <Alert variant="error" className="mt-4">
+              <AlertDescription>
+                Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {error ? (
+            <Alert variant="error" className="mt-4" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
           <form className="mt-[18px] grid gap-[22px]" onSubmit={handleSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email address</Label>
-              <Input id="email" name="email" type="email" placeholder="you@example.com" variant="plain" inputSize="lg" required />
+              <Label htmlFor="identifier">Email or username</Label>
+              <Input id="identifier" name="identifier" type="text" placeholder="you@example.com or Ahmed" variant="plain" inputSize="lg" required autoComplete="username" />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center justify-between gap-4">
                 <Label htmlFor="password">Password</Label>
                 <a className="text-xs font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#forgot">Forgot password?</a>
               </div>
-              <Input id="password" name="password" type="password" placeholder="Enter your password" variant="plain" inputSize="lg" required />
+              <Input id="password" name="password" type="password" placeholder="Enter your password" variant="plain" inputSize="lg" required autoComplete="current-password" />
             </div>
-            <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">Sign in</Button>
+            <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={loading} disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </Button>
           </form>
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             New to NutriiApp? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signup">Create an account</a>

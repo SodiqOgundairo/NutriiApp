@@ -1,15 +1,34 @@
 import { useState, type FormEvent } from 'react'
-import { Button, Input, Label } from 'devign'
+import { Alert, AlertDescription, Button, Input, Label } from 'devign'
+import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 function ForgotScreen() {
   const [sentTo, setSentTo] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setError(null)
     const data = new FormData(event.currentTarget)
-    const email = String(data.get('email') ?? '')
+    const email = String(data.get('email') ?? '').trim()
     if (!email) return
-    setSentTo(email)
+    if (!supabase) {
+      setError('Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).')
+      return
+    }
+    setSending(true)
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}${window.location.pathname}#reset`,
+      })
+      if (resetError) throw resetError
+      setSentTo(email)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send reset link. Try again.')
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -25,7 +44,7 @@ function ForgotScreen() {
         <p className="m-0 text-xs font-extrabold uppercase tracking-[0.16em] text-(--brand-100)">Account recovery</p>
         <h1 id="forgot-heading" className="m-0 max-w-[460px] text-[clamp(44px,5vw,72px)] font-extrabold leading-[0.98] tracking-[-0.03em] max-md:text-[clamp(40px,12vw,56px)]">Locked out? Let&apos;s fix that.</h1>
         <p className="m-0 max-w-[360px] text-[17px] leading-[1.6] text-white/80">
-          Enter your email and we&apos;ll send a reset link. Demo mode: no email actually goes out.
+          Enter your email and we&apos;ll send you a reset link.
         </p>
       </section>
 
@@ -40,6 +59,18 @@ function ForgotScreen() {
           ) : (
             <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">Enter the email you signed up with.</p>
           )}
+          {!isSupabaseConfigured ? (
+            <Alert variant="error" className="mt-4">
+              <AlertDescription>
+                Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {error ? (
+            <Alert variant="error" className="mt-4" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
           {sentTo ? (
             <Button variant="primary" size="lg" className="mt-1 w-full" onClick={() => { window.location.hash = '#signin' }}>
               Back to sign in
@@ -48,15 +79,15 @@ function ForgotScreen() {
             <form className="mt-[18px] grid gap-[22px]" onSubmit={handleSubmit}>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email address</Label>
-                <Input id="email" name="email" type="email" placeholder="you@example.com" variant="plain" inputSize="lg" required />
+                <Input id="email" name="email" type="email" placeholder="you@example.com" variant="plain" inputSize="lg" required autoComplete="email" />
               </div>
-              <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">Send reset link</Button>
+              <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={sending} disabled={sending}>
+                {sending ? 'Sending…' : 'Send reset link'}
+              </Button>
             </form>
           )}
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             Remembered it? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signin">Sign in</a>
-            {' · '}
-            <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#reset">Demo reset</a>
           </p>
         </div>
       </section>

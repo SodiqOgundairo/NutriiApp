@@ -1,16 +1,87 @@
-import type { FormEvent } from 'react'
-import { Button, Input, Label } from 'devign'
-import { signUpDemo } from '../lib/session'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Alert, AlertDescription, Button, Input, Label } from 'devign'
+import PasswordStrength from './PasswordStrength'
+import {
+  USERNAME_TAKEN_MESSAGE,
+  isUsernameAvailable,
+  signUpWithEmail,
+  validateUsername,
+} from '../lib/session'
+import { validatePassword } from '../lib/password'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 function SignupScreen() {
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [usernameTaken, setUsernameTaken] = useState(false)
+  const [checkingName, setCheckingName] = useState(false)
+
+  useEffect(() => {
+    if (validateUsername(username) !== null) {
+      setUsernameTaken(false)
+      setCheckingName(false)
+      return
+    }
+    setCheckingName(true)
+    const timer = window.setTimeout(() => {
+      void isUsernameAvailable(username).then((available) => {
+        setUsernameTaken(available === false)
+        setCheckingName(false)
+      })
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [username])
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
-    const name = String(data.get('name') ?? '')
-    const email = String(data.get('email') ?? '')
-    if (!email) return
-    signUpDemo(name, email)
-    window.location.hash = '#dashboard'
+    setError(null)
+    setNotice(null)
+    const usernameError = validateUsername(username)
+    if (usernameError) {
+      setError(usernameError)
+      return
+    }
+    if (!email.trim()) {
+      setError('Enter your email address.')
+      return
+    }
+    const passwordError = validatePassword(password, { username, email })
+    if (passwordError) {
+      setError(passwordError)
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+    setLoading(true)
+    try {
+      const fresh = await isUsernameAvailable(username.trim())
+      if (fresh === false) {
+        setUsernameTaken(true)
+        setError(USERNAME_TAKEN_MESSAGE)
+        return
+      }
+      const { needsConfirmation } = await signUpWithEmail({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      })
+      if (needsConfirmation) {
+        setNotice('Check your email to confirm your account, then sign in.')
+      } else {
+        window.location.hash = '#dashboard'
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign up failed. Try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -34,21 +105,98 @@ function SignupScreen() {
         <div className="w-full max-w-[400px]">
           <p className="m-0 mb-2.5 text-xs font-extrabold uppercase tracking-[0.16em] text-(--neutral-500)">Get started</p>
           <h2 className="m-0 text-[32px] font-extrabold tracking-[-0.02em]">Create your account</h2>
-          <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">Demo mode: any details will sign you straight in.</p>
+          <p className="m-0 mt-2.5 leading-[1.5] text-(--neutral-500)">Sign up with your email and a password.</p>
+          {!isSupabaseConfigured ? (
+            <Alert variant="error" className="mt-4">
+              <AlertDescription>
+                Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (see .env.example).
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {error ? (
+            <Alert variant="error" className="mt-4" role="alert">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          {notice ? (
+            <Alert variant="success" className="mt-4" role="status">
+              <AlertDescription>{notice}</AlertDescription>
+            </Alert>
+          ) : null}
           <form className="mt-[18px] grid gap-[22px]" onSubmit={handleSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="name">Your name</Label>
-              <Input id="name" name="name" type="text" placeholder="Ahmed" variant="plain" inputSize="lg" required />
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Ahmed"
+                variant="plain"
+                inputSize="lg"
+                required
+                autoComplete="username"
+                minLength={3}
+                maxLength={30}
+                value={username}
+                onChange={(event) => {
+                  setUsername(event.target.value)
+                  setError(null)
+                }}
+                error={usernameTaken ? USERNAME_TAKEN_MESSAGE : undefined}
+                hint={checkingName ? 'Checking availability…' : undefined}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email">Email address</Label>
-              <Input id="email" name="email" type="email" placeholder="you@example.com" variant="plain" inputSize="lg" required />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                variant="plain"
+                inputSize="lg"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" placeholder="Choose a password" variant="plain" inputSize="lg" required />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Choose a strong password"
+                variant="plain"
+                inputSize="lg"
+                required
+                autoComplete="new-password"
+                minLength={8}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              <PasswordStrength password={password} username={username} email={email} />
             </div>
-            <Button type="submit" variant="primary" size="lg" className="mt-1 w-full">Create account</Button>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm">Confirm password</Label>
+              <Input
+                id="confirm"
+                name="confirm"
+                type="password"
+                placeholder="Repeat the password"
+                variant="plain"
+                inputSize="lg"
+                required
+                autoComplete="new-password"
+                minLength={8}
+                value={confirm}
+                onChange={(event) => setConfirm(event.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={loading} disabled={loading}>
+              {loading ? 'Creating account…' : 'Create account'}
+            </Button>
           </form>
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             Already have an account? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signin">Sign in</a>

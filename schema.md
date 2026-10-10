@@ -5,7 +5,7 @@ Table: `meal_records`
 Each row is one meal entry. Dashboard groups by `log_date` for the current user to show daily value.
 
 - `id`: uuid, primary key
-- `owner_id`: uuid, references auth user who owns the record
+- `owner_id`: uuid NOT NULL, references `profiles(id)` (the uploader); RLS restricts all access to the owning user
 - `log_date`: date, the day the meal belongs to, no future dates
 - `meal_category`: text, breakfast, lunch, dinner, snack, etc.
 - `food_text`: text, free text entry e.g. rice
