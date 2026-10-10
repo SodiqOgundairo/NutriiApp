@@ -161,6 +161,24 @@ export async function signInWithIdentifier(input: {
   }
 }
 
+/**
+ * Start Google sign-in via Supabase Auth (OAuth redirect). Resolves when the
+ * redirect starts; Supabase returns the user to redirectTo with a session.
+ * Requires the Google provider enabled in Supabase Auth and this origin
+ * allowlisted in the Auth URL configuration.
+ */
+export async function signInWithGoogle(): Promise<void> {
+  const client = requireSupabase()
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}${window.location.pathname}#dashboard`,
+      queryParams: { prompt: 'select_account' },
+    },
+  })
+  if (error) throw error
+}
+
 export async function signOut(): Promise<void> {
   const client = requireSupabase()
   const { error } = await client.auth.signOut()

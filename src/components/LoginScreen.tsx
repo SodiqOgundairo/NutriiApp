@@ -1,11 +1,25 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, AlertDescription, Button, Input, Label } from 'devign'
+import GoogleSignInButton from './GoogleSignInButton'
 import { signInWithIdentifier } from '../lib/session'
 import { isSupabaseConfigured } from '../lib/supabase'
 
 function LoginScreen() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // If Google redirects back with an error (e.g. access denied), surface it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const hashIndex = window.location.hash.indexOf('?')
+    const hashQuery = hashIndex >= 0 ? new URLSearchParams(window.location.hash.slice(hashIndex + 1)) : null
+    const oauthError =
+      params.get('error_description') ??
+      params.get('error') ??
+      hashQuery?.get('error_description') ??
+      hashQuery?.get('error')
+    if (oauthError) setError(decodeURIComponent(oauthError).replace(/\+/g, ' '))
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -75,6 +89,7 @@ function LoginScreen() {
             <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={loading} disabled={loading}>
               {loading ? 'Signing in…' : 'Sign in'}
             </Button>
+            <GoogleSignInButton disabled={loading} onError={setError} />
           </form>
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             New to NutriiApp? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signup">Create an account</a>

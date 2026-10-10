@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, AlertDescription, Button, Input, Label } from 'devign'
 import PasswordStrength from './PasswordStrength'
+import GoogleSignInButton from './GoogleSignInButton'
 import {
   USERNAME_TAKEN_MESSAGE,
   isUsernameAvailable,
@@ -197,6 +198,7 @@ function SignupScreen() {
             <Button type="submit" variant="primary" size="lg" className="mt-1 w-full" isLoading={loading} disabled={loading}>
               {loading ? 'Creating account…' : 'Create account'}
             </Button>
+            <GoogleSignInButton disabled={loading} onError={setError} />
           </form>
           <p className="mt-7 text-center text-sm text-(--neutral-500)">
             Already have an account? <a className="font-semibold text-(--brand-700) underline decoration-1 underline-offset-[3px]" href="#signin">Sign in</a>
