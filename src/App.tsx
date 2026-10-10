@@ -10,7 +10,7 @@ import ResetScreen from './components/ResetScreen'
 import PrivacyScreen from './components/PrivacyScreen'
 import TermsScreen from './components/TermsScreen'
 import AmbientBackground from './components/AmbientBackground'
-import { sessionFromUser, type AppSession } from './lib/session'
+import { consumeOAuthNext, sessionFromUser, type AppSession } from './lib/session'
 import { supabase } from './lib/supabase'
 
 type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'analysis' | 'profile' | 'privacy' | 'terms'
@@ -55,9 +55,15 @@ function App() {
       setSession(sessionFromUser(data.session?.user ?? null))
       setAuthReady(true)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, supabaseSession) => {
-      setSession(sessionFromUser(supabaseSession?.user ?? null))
+    const { data: listener } = supabase.auth.onAuthStateChange((event, supabaseSession) => {
+      const mapped = sessionFromUser(supabaseSession?.user ?? null)
+      setSession(mapped)
       setAuthReady(true)
+      if (event === 'SIGNED_IN' && mapped) {
+        // OAuth arrivals land on the app root; take them where they were going.
+        const next = consumeOAuthNext()
+        if (next && window.location.hash !== next) window.location.hash = next
+      }
     })
     return () => {
       mounted = false

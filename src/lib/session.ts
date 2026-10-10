@@ -161,22 +161,43 @@ export async function signInWithIdentifier(input: {
   }
 }
 
+const OAUTH_NEXT_KEY = 'nutrii-oauth-next'
+
 /**
  * Start Google sign-in via Supabase Auth (OAuth redirect). Resolves when the
- * redirect starts; Supabase returns the user to redirectTo with a session.
+ * redirect starts; Supabase returns the user to the app root with a session.
+ * The post-login target is kept in sessionStorage (not in the redirect URL)
+ * because hash fragments in redirect URLs get dropped or mangled on the
+ * round trip, stranding users on the landing page.
  * Requires the Google provider enabled in Supabase Auth and this origin
  * allowlisted in the Auth URL configuration.
  */
 export async function signInWithGoogle(): Promise<void> {
   const client = requireSupabase()
+  try {
+    window.sessionStorage.setItem(OAUTH_NEXT_KEY, '#dashboard')
+  } catch {
+    // Storage unavailable: still attempt sign-in, App just won't auto-route.
+  }
   const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}${window.location.pathname}#dashboard`,
+      redirectTo: `${window.location.origin}${window.location.pathname}`,
       queryParams: { prompt: 'select_account' },
     },
   })
   if (error) throw error
+}
+
+/** Consumes the stored post-OAuth target, if any. */
+export function consumeOAuthNext(): string | null {
+  try {
+    const next = window.sessionStorage.getItem(OAUTH_NEXT_KEY)
+    if (next) window.sessionStorage.removeItem(OAUTH_NEXT_KEY)
+    return next
+  } catch {
+    return null
+  }
 }
 
 export async function signOut(): Promise<void> {
