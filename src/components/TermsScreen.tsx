@@ -66,7 +66,7 @@ function TermsScreen() {
         <p className="mt-3 leading-[1.6] text-(--neutral-800)">
           Email <a className="font-semibold text-(--brand-700)" href="mailto:hello@gr8m.com">hello@gr8m.com</a> from the address you signed
           up with and ask for deletion, as described in our{' '}
-          <a className="font-semibold text-(--brand-700)" href="#privacy">privacy policy</a>.
+          <a className="font-semibold text-(--brand-700)" href="/privacy">privacy policy</a>.
         </p>
       </section>
 

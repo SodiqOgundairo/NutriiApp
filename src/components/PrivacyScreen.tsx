@@ -158,7 +158,7 @@ function PrivacyScreen() {
           date. Questions about privacy, or requests about your data, go to{' '}
           <a className="font-semibold text-(--brand-700)" href="mailto:hello@gr8m.com">hello@gr8m.com</a>.
           Also see our{' '}
-          <a className="font-semibold text-(--brand-700)" href="#terms">terms of use</a>.
+          <a className="font-semibold text-(--brand-700)" href="/terms">terms of use</a>.
         </p>
       </section>
     </main>
