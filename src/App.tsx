@@ -7,17 +7,25 @@ import DashboardScreen from './components/DashboardScreen'
 import AnalysisScreen from './components/AnalysisScreen'
 import ProfileScreen from './components/ProfileScreen'
 import ResetScreen from './components/ResetScreen'
+import PrivacyScreen from './components/PrivacyScreen'
+import TermsScreen from './components/TermsScreen'
 import AmbientBackground from './components/AmbientBackground'
 import { sessionFromUser, type AppSession } from './lib/session'
 import { supabase } from './lib/supabase'
 
-type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'analysis' | 'profile'
+type Route = 'landing' | 'signin' | 'signup' | 'forgot' | 'reset' | 'dashboard' | 'analysis' | 'profile' | 'privacy' | 'terms'
 
 function routeFromHash(): Route {
   const hash = window.location.hash.replace(/^#/, '').split('?')[0]
-  if (hash === '' || hash === 'home') return 'landing'
+  if (hash === '' || hash === 'home') {
+    // Direct visits to /privacy and /terms (where the host rewrites to index.html).
+    const path = window.location.pathname.replace(/\/+$/, '')
+    if (path === '/privacy' || path === '/terms') return path.slice(1) as Route
+    return 'landing'
+  }
   if (hash === 'signin' || hash === 'signup' || hash === 'forgot' || hash === 'reset') return hash
   if (hash === 'dashboard' || hash === 'analysis' || hash === 'profile') return hash
+  if (hash === 'privacy' || hash === 'terms') return hash
   return 'landing'
 }
 
@@ -85,6 +93,10 @@ function App() {
       return <ForgotScreen />
     case 'reset':
       return <ResetScreen />
+    case 'privacy':
+      return <PrivacyScreen />
+    case 'terms':
+      return <TermsScreen />
     case 'dashboard':
       return (
         <>
