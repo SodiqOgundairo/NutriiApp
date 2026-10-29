@@ -17,6 +17,7 @@ interface MealRecordRow {
   vitamins: number | string | null
   minerals: number | string | null
   water: number | string | null
+  calories: number | string | null
   created_at: string | null
 }
 
@@ -54,7 +55,7 @@ function rowToMeal(row: MealRecordRow): MealEntry {
       minerals: num(row.minerals),
       water: num(row.water),
     },
-    calories: analyzeMeal(text, quantity).calories,
+    calories: row.calories == null ? analyzeMeal(text, quantity).calories : num(row.calories),
   }
 }
 
@@ -117,6 +118,17 @@ export async function addMeal(input: Omit<MealEntry, 'id' | 'loggedAt'>): Promis
     emit()
     throw new Error(loadError)
   }
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+  if (userError) {
+    console.error('[meals] auth lookup failed:', userError.message)
+    throw new Error('Could not verify your signed-in account. Please sign in again.')
+  }
+  if (!user) {
+    throw new Error('You must be signed in to log a meal.')
+  }
   const { data, error } = await supabase
     .from('meal_records')
     .insert({
@@ -131,7 +143,8 @@ export async function addMeal(input: Omit<MealEntry, 'id' | 'loggedAt'>): Promis
       vitamins: input.servings.vitamins,
       minerals: input.servings.minerals,
       water: input.servings.water,
-      owner_id: null,
+      owner_id: user.id,
+      calories: input.calories,
     })
     .select()
     .single()
@@ -158,6 +171,7 @@ export async function updateMeal(id: string, patch: Partial<MealEntry>): Promise
   if (patch.text !== undefined) payload.food_text = patch.text
   if (patch.quantity !== undefined) payload.quantity = patch.quantity
   if (patch.unit !== undefined) payload.unit = patch.unit
+  if (patch.calories !== undefined) payload.calories = patch.calories
   if (patch.servings !== undefined) {
     payload.carbohydrates = patch.servings.carbs
     payload.proteins = patch.servings.protein

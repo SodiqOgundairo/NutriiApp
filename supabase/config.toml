@@ -1,0 +1,4 @@
+project_id = "vomujuvkhvfxwpqlqvtu"
+
+[functions.nutrition-search]
+verify_jwt = true

@@ -18,6 +18,8 @@ ALTER TABLE public.meal_records ALTER COLUMN updated_at SET DEFAULT now();
 ALTER TABLE public.meal_records ALTER COLUMN created_at SET NOT NULL;
 ALTER TABLE public.meal_records ALTER COLUMN updated_at SET NOT NULL;
 
+ALTER TABLE public.meal_records ADD COLUMN IF NOT EXISTS calories numeric NOT NULL DEFAULT 0;
+
 -- A4: week 4 only open policy (Session 08 slide 10: new table returns empty list with no error).
 -- Remove this when auth + RLS land next week.
 ALTER TABLE public.meal_records ENABLE ROW LEVEL SECURITY;

@@ -1,8 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Button, Input, Label, RadioGroup, RadioGroupItem } from 'devign'
 import { addMeal, updateMeal } from '../lib/mealStore'
+import { searchNutrition, type NutritionFood } from '../lib/nutritionApi'
 import {
   analyzeMeal,
+  analysisFromNutrition,
   FOOD_CLASSES,
   FOOD_CLASS_LABELS,
   MEAL_CATEGORIES,
@@ -30,15 +32,43 @@ function MealForm({ initial = null, onDone }: MealFormProps) {
   const [unit, setUnit] = useState(initial?.unit ?? 'plate')
   const [category, setCategory] = useState<MealCategory>(initial?.category ?? 'lunch')
   const [saving, setSaving] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [results, setResults] = useState<NutritionFood[]>([])
+  const [selectedFood, setSelectedFood] = useState<NutritionFood | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  const preview = useMemo(() => analyzeMeal(text, Number(quantity) || 0).servings, [text, quantity])
+  const nutrition = selectedFood
+    ? analysisFromNutrition(selectedFood, Number(quantity) || 1)
+    : null
+  const preview = useMemo(
+    () => (nutrition ?? analyzeMeal(text, Number(quantity) || 0)).servings,
+    [nutrition, text, quantity],
+  )
+
+  const handleSearch = async () => {
+    if (text.trim().length < 2 || searching) return
+    setSearching(true)
+    setFormError(null)
+    setSelectedFood(null)
+    try {
+      setResults(await searchNutrition(text))
+    } catch (error) {
+      setResults([])
+      setFormError(error instanceof Error ? error.message : 'Nutrition search failed')
+    } finally {
+      setSearching(false)
+    }
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const qty = Number(quantity) || 1
     if (!text.trim() || saving) return
-    const analysis = analyzeMeal(text, qty)
+    if (!selectedFood && !initial) {
+      setFormError('Search for this food and select a USDA result before saving.')
+      return
+    }
+    const analysis = selectedFood ? analysisFromNutrition(selectedFood, qty) : analyzeMeal(text, qty)
     setSaving(true)
     setFormError(null)
     try {
@@ -85,6 +115,37 @@ function MealForm({ initial = null, onDone }: MealFormProps) {
           onChange={(event) => setText(event.target.value)}
           required
         />
+        <Button type="button" variant="outline" size="sm" onClick={() => void handleSearch()} disabled={searching || text.trim().length < 2}>
+          {searching ? 'Searching USDA...' : 'Find nutrition'}
+        </Button>
+        {results.length > 0 ? (
+          <div className="grid gap-2 rounded-xl border border-(--neutral-200) bg-white p-2" role="listbox" aria-label="USDA food matches">
+            {results.map((food) => (
+              <button
+                key={food.fdcId}
+                type="button"
+                role="option"
+                aria-selected={selectedFood?.fdcId === food.fdcId}
+                className={`rounded-lg p-2 text-left text-sm hover:bg-(--brand-50) ${selectedFood?.fdcId === food.fdcId ? 'bg-(--brand-50)' : ''}`}
+                onClick={() => {
+                  setSelectedFood(food)
+                  setResults([])
+                }}
+              >
+                <strong className="block">{food.description}</strong>
+                <span className="text-xs text-(--neutral-500)">
+                  {food.calories} kcal · {food.protein} g protein · {food.carbohydrates} g carbs · {food.fat} g fat
+                  {food.servingSize ? ` · per ${food.servingSize} ${food.servingSizeUnit ?? 'g'}` : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {selectedFood ? (
+          <p className="m-0 text-xs font-semibold text-(--brand-700)" aria-live="polite">
+            USDA food selected: {selectedFood.description}. Quantity scales its listed serving.
+          </p>
+        ) : null}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">

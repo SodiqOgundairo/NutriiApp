@@ -7,7 +7,6 @@
 -- non-null FK to public.profiles(id), and RLS flips from the week-4 open
 -- policy to owner-only (users see and touch only what they uploaded).
 -- NOTE: after this, new inserts must send owner_id = the signed-in user's id.
--- The app store still sends owner_id: null, so wire that up next or inserts fail.
 
 -- 0: profiles registry must exist first.
 DO $$

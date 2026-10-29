@@ -81,6 +81,26 @@ export function analyzeMeal(text: string, quantity: number): MealAnalysis {
   return { servings, calories: Math.round((rule ? rule.kcal : 150) * factor) }
 }
 
+export function analysisFromNutrition(food: {
+  calories: number
+  protein: number
+  carbohydrates: number
+  fat: number
+}, quantity: number): MealAnalysis {
+  const factor = Number.isFinite(quantity) && quantity > 0 ? quantity : 1
+  return {
+    servings: {
+      protein: Math.round(food.protein * factor * 10) / 10,
+      carbs: Math.round(food.carbohydrates * factor * 10) / 10,
+      fats: Math.round(food.fat * factor * 10) / 10,
+      vitamins: 0,
+      minerals: 0,
+      water: 0,
+    },
+    calories: Math.round(food.calories * factor),
+  }
+}
+
 export function sumServings(meals: MealEntry[]): Servings {
   const total = emptyServings()
   for (const meal of meals) {
